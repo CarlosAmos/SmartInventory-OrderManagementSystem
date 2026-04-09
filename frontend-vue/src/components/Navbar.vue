@@ -1,4 +1,18 @@
+<script setup>
+import { useRouter } from 'vue-router'
+import authService from '@/services/authService'
+import { useCartStore } from '@/stores/cartStore'
+import { useAuthStore } from '@/stores/authStore'
 
+const router = useRouter()
+const cartStore = useCartStore()
+const authStore = useAuthStore()
+
+const handleLogout = async () => {
+  await authService.logout()
+  router.push('/login')
+}
+</script>
 
 <template>
     <nav class="w-full">
@@ -12,8 +26,8 @@
 
                 <!-- Right side navigation -->
                 <div class="flex items-center">
-                    <RouterLink class="hover:text-gray-400 text-sm font-medium transition-colors pr-3" to="/cart">Cart</RouterLink>
-                    <RouterLink class="text-gray-400 hover:text-white text-sm pl-3" style="border-left:1px solid grey" to="/login">Sign Out</RouterLink>
+                    <RouterLink class="hover:text-gray-400 text-sm font-medium transition-colors pr-3" to="/cart">Cart ({{ cartStore.itemCount }})</RouterLink>
+                    <button @click="handleLogout" class="text-gray-400 hover:text-white text-sm pl-3" style="border-left:1px solid grey" to="/login">Sign Out</button>
                 </div>
             </div>
         </div>

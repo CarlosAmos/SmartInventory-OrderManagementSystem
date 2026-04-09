@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import authService from '@/services/authService'
+import { useAuthStore } from '@/stores/authStore'
 import HomeView from '../views/HomeView.vue'
 import ProductListView from '../views/products/ProductListView.vue'
 import OrdersView from '../views/orders/OrdersView.vue'
@@ -11,37 +13,40 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',  // This name is used in App.vue
-      component: LoginView
-    },
-    {
-      path: '/',
-      name: 'home',
-      component: HomeView,
-    },
-    {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
+      component: LoginView,
+      meta: { hideNavbar: true, requiresGuest: true }
     },
     {
       path: '/products',
       name: 'products',
-      component: ProductListView
+      component: ProductListView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/orders',
       name: 'orders',
-      component: OrdersView
+      component: OrdersView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/cart',
       name: 'cart',
-      component: CartView
+      component: CartView,
+      meta: { requiresAuth: true }
     }
   ],
+})
+
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore()
+  
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    next('/login')
+  } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
+    next('/products')
+  } else {
+    next()
+  }
 })
 
 export default router

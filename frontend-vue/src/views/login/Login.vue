@@ -1,3 +1,71 @@
+<script setup>
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
+import authService from '@/services/authService'
+
+const router = useRouter()
+const showPassword = ref(false)
+const username = ref('')
+const password = ref('')
+
+// Error states
+const loginError = ref(false)
+const usernameError = ref('')
+const passwordError = ref('')
+
+// Debug: Check if component is mounting/unmounting
+onMounted(() => {
+  console.log('LoginPage MOUNTED')
+})
+
+onBeforeUnmount(() => {
+  console.log('LoginPage UNMOUNTING')
+})
+
+const clearErrors = () => {
+  loginError.value = false
+  usernameError.value = ''
+  passwordError.value = ''
+}
+
+const handleLogin = async () => {
+  console.log('handleLogin called!')
+  clearErrors()
+  
+  try {
+    await authService.login(username.value, password.value)
+    console.log('Login successful!')
+    router.push('/')
+  } catch (error) {
+    console.error('Login error:', error)
+    
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('user')
+    
+    if (error.response?.status === 401) {
+      loginError.value = true
+      usernameError.value = ' '
+      passwordError.value = ' '
+      console.log('401 error - setting loginError to true')
+      console.log('loginError.value is now:', loginError.value)
+      
+      // Debug: Check after a delay
+      setTimeout(() => {
+        console.log('After 1 second, loginError is:', loginError.value)
+      }, 1000)
+    } else if (error.response?.status === 422) {
+      const errors = error.response.data.errors
+      if (errors.email) usernameError.value = errors.email[0]
+      if (errors.password) passwordError.value = errors.password[0]
+      console.log('422 error - validation failed')
+    } else {
+      loginError.value = true
+      console.log('Other error:', error.response?.status)
+    }
+  }
+}
+</script>
+
 <template>
   <div class="relative min-h-screen">
     <!-- Background Image -->
@@ -57,9 +125,6 @@
                 <span class="text-white text-xs font-bold">!</span>
               </div>
             </div>
-            <p v-if="usernameError" class="mt-2 text-sm text-red-600">
-              {{ usernameError }}
-            </p>
           </div>
           
           <!-- Password Field -->
@@ -98,14 +163,11 @@
                 </button>
               </div>
             </div>
-            <p v-if="passwordError" class="mt-2 text-sm text-red-600">
-              {{ passwordError }}
-            </p>
           </div>
           
           <!-- Forgot Password Link -->
           <div>
-            <a href="#" class="text-blue-500 hover:text-blue-600 text-sm font-medium">
+            <a href="#" @click.prevent class="text-blue-500 hover:text-blue-600 text-sm font-medium">
               Forgot password?
             </a>
           </div>
@@ -122,77 +184,3 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-const showPassword = ref(false)
-const username = ref('')
-const password = ref('')
-
-// Error states
-const loginError = ref(false)
-const usernameError = ref('')
-const passwordError = ref('')
-
-// Hardcoded credentials for now
-const VALID_USERNAME = 'admin@admin.com'
-const VALID_PASSWORD = 'admin'
-
-const clearErrors = () => {
-  loginError.value = false
-  usernameError.value = ''
-  passwordError.value = ''
-}
-
-const validateEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
-
-const handleLogin = async () => {
-  clearErrors()
-  
-  // Validate email format
-  if (!validateEmail(username.value)) {
-    usernameError.value = 'Please enter a valid email address'
-    return
-  }
-  
-  // Check credentials
-  if (username.value !== VALID_USERNAME || password.value !== VALID_PASSWORD) {
-    loginError.value = true
-    usernameError.value = ' ' // Just to trigger red border
-    passwordError.value = ' ' // Just to trigger red border
-    return
-  }
-  
-  // Success - navigate to home
-  console.log('Login successful!')
-  router.push('/products')
-  
-  // Later: Replace with actual API call
-  // try {
-  //   const response = await axios.post('/api/login', {
-  //     email: username.value,
-  //     password: password.value
-  //   })
-  //   localStorage.setItem('token', response.data.token)
-  //   router.push('/')
-  // } catch (error) {
-  //   if (error.response?.status === 422) {
-  //     // Validation errors
-  //     const errors = error.response.data.errors
-  //     if (errors.email) usernameError.value = errors.email[0]
-  //     if (errors.password) passwordError.value = errors.password[0]
-  //   } else if (error.response?.status === 401) {
-  //     // Invalid credentials
-  //     loginError.value = true
-  //     usernameError.value = ' '
-  //     passwordError.value = ' '
-  //   }
-  // }
-}
-</script>
