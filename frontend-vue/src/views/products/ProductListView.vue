@@ -8,43 +8,52 @@ import  LoadingSpinner  from '@/components/LoadingSpinner.vue';
 const toast = useToast();
 const cartStore = useCartStore();
 const searchQuery = ref('');
+const selectedCategory = ref('all');
 
 // ? Use TanStack Query for data fetching with auto-refetching
+
+
+// Fetch categories
+const { data: categories } = useQuery({
+  queryKey: ['categories'],
+  queryFn: productService.getCategories,
+  staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+});
+
+console.log("Categories",categories);
+
+// Fetch products with filters (reactive to changes)
+const filters = computed(() => ({
+  search: searchQuery.value,
+  category: selectedCategory.value
+}));
+
 const { 
-  data: allProducts, 
+  data: products, 
   isLoading: loading, 
   isError,
-  error 
+  error,
+  refetch
 } = useQuery({
-  queryKey: ['products'],
-  queryFn: productService.getProducts,
-  refetchInterval: 3000, // ? Auto-refetch every 3 seconds (real-time stock updates)
-  staleTime: 1000, // ? Data is stale after 1 second
+  queryKey: ['products', filters],
+  queryFn: () => productService.getProducts(filters.value),
+  refetchInterval: 3000, // Auto-refetch every 3 seconds
+  staleTime: 1000,
 })
 
-// ? Filter products based on search query
-const products = computed(() => {
-  if (!allProducts.value) return [];
-  
-  if (!searchQuery.value) {
-    return allProducts.value;
-  }
-  
-  const query = searchQuery.value.toLowerCase();
-  return allProducts.value.filter(product => 
-    product.name.toLowerCase().includes(query) ||
-    product.sku.toLowerCase().includes(query)
-  );
-})
 
 
 const handleSearch = () => {
-  // Search is reactive via computed property
-  // No need to fetch again
+  refetch();
 }
 
 const clearSearch = () => {
   searchQuery.value = '';
+}
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  selectedCategory.value = 'all'
 }
 
 const isInStock = (product) => {
@@ -55,7 +64,7 @@ const getStockIndicatorClass = (product) => {
   if (product.stock === 0) {
     return 'bg-red-400/30 text-red-600 border-red-600';
   } else if (product.stock < 5) {
-    return 'bg-orange-400/30 text-orange-600 border-orange-600';
+    return 'bg-yellow-400/30 text-yellow-800 border-yellow-800';
   } else {
     return 'bg-green-400/30 text-green-600 border-green-600';
   }
@@ -83,13 +92,11 @@ const addToOrder = (product) => {
 </script>
 
 <template>
-  <div class="px-40 py-20">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 mb-6">Product Dashboard</h1>
-      
+  <div class="py-1 md:py-10 sm:px-1 md:px-10 lg:px-20">
+    <div class="mb-2 sm:mb-8">      
       <!-- Search Bar -->
-      <div class="flex gap-4 max-w-2xl">
-        <div class="flex-1 relative">
+      <div class="flex gap-4 w-full p-1 sm:p-0 flex-col md:flex-row items-end">
+        <div class="flex-1 relative w-full">
           <input
             v-model="searchQuery"
             @keyup.enter="handleSearch"
@@ -105,12 +112,22 @@ const addToOrder = (product) => {
             ✕
           </button>
         </div>
-        <button
-          @click="handleSearch"
-          class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
-        >
-          Search
-        </button>
+          <div class="w-full md:w-64">
+            <label>Category</label>
+            <select
+              v-model="selectedCategory"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
+            >
+              <option value="all">All Categories</option>
+              <option 
+                v-for="category in categories" 
+                :key="category.id" 
+                :value="category.id"
+              >
+                {{ category.name }}
+              </option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -123,11 +140,11 @@ const addToOrder = (product) => {
       <p class="text-red-600">{{ error?.message || 'Failed to load products' }}</p>
     </div>
 
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
       <div
         v-for="product in products"
         :key="product.id"
-        class="flex flex-col items-start bg-white max-w-sm p-6 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+        class="flex flex-col items-start bg-white min-w-64 max-w-64 md:min-w-80 md:max-w-sm p-6 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
       >
         <img 
           class="w-full h-48 object-cover rounded-md mb-4" 
@@ -137,7 +154,7 @@ const addToOrder = (product) => {
         
         <div 
           :class="[
-            'border rounded-md px-2 py-[2px] border-default font-medium text-center text-xs mb-2 transition-all duration-300',
+            'border rounded-md px-2 py-[2px] border-default font-bold text-center text-xs mb-2 transition-all duration-300',
             getStockIndicatorClass(product)
           ]"
         >
@@ -190,3 +207,9 @@ const addToOrder = (product) => {
     </div>
   </div>
 </template>
+
+<style>
+
+
+
+</style>

@@ -247,7 +247,7 @@ const proceedToCheckout = async () => {
                     @input="updateQuantity(item, $event.target.value, $event)"
                     @blur="updateQuantity(item, $event.target.value, $event)"
                     :class="[
-                      'w-16 text-center rounded-lg py-2 focus:outline-none transition-all duration-300',
+                      'w-16 text-center rounded-md py-2 focus:outline-none transition-all duration-300 h-7',
                       isInputError(item.id)
                         ? 'border-2 border-red-500 focus:ring-2 focus:ring-red-500'
                         : 'border border-gray-300 focus:ring-2 focus:ring-blue-500'
@@ -255,20 +255,20 @@ const proceedToCheckout = async () => {
                     min="1"
                     :max="item.stock"
                   >
-                  <div class="flex flex-col">
-                    <button
-                      @click="incrementQuantity(item)"
-                      :disabled="item.quantity >= item.stock"
-                      class="px-2 py-1 border border-gray-300 rounded-t hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-                    >
-                      +
-                    </button>
+                  <div class="flex flex-row">
                     <button
                       @click="decrementQuantity(item)"
                       :disabled="item.quantity <= 1"
                       class="px-2 py-1 border border-gray-300 rounded-b border-t-0 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
                     >
                       −
+                    </button>
+                    <button
+                      @click="incrementQuantity(item)"
+                      :disabled="item.quantity >= item.stock"
+                      class="px-2 py-1 border border-gray-300 rounded-t hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                    >
+                      +
                     </button>
                   </div>
                 </div>

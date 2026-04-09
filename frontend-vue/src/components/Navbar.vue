@@ -15,19 +15,19 @@ const handleLogout = async () => {
 </script>
 
 <template>
-    <nav class="w-full">
-        <div class="mx-auto px-4">
-            <div class="text-white flex items-center justify-between h-12">
-                <!-- Left side navigation -->
-                <div class="flex items-center space-x-6">
-                    <RouterLink class="hover:text-gray-400 text-sm font-medium transition-colors" to="/products">Product List</RouterLink>
-                    <RouterLink class="hover:text-gray-400 text-sm font-medium transition-colors" to="/orders">My Orders</RouterLink>
+    <nav class="w-full" style="text-wrap: wrap;">
+        <div class="mx-auto px-4 ">
+            <div class="text-white flex items-center justify-between h-12 text-sm sm:text-lg">
+                <!-- ? Left side navigation -->
+                <div class="flex items-center space-x-6 ">
+                    <RouterLink class="hover:text-gray-400 font-medium transition-colors" to="/products">Product List</RouterLink>
+                    <RouterLink class="hover:text-gray-400 font-medium transition-colors" to="/orders">My Orders</RouterLink>
                 </div>
 
-                <!-- Right side navigation -->
+                <!-- ? Right side navigation -->
                 <div class="flex items-center">
-                    <RouterLink class="hover:text-gray-400 text-sm font-medium transition-colors pr-3" to="/cart">Cart ({{ cartStore.itemCount }})</RouterLink>
-                    <button @click="handleLogout" class="text-gray-400 hover:text-white text-sm pl-3" style="border-left:1px solid grey" to="/login">Sign Out</button>
+                    <RouterLink class="hover:text-gray-400 font-medium transition-colors pr-3" to="/cart">Cart ({{ cartStore.itemCount }})</RouterLink>
+                    <button @click="handleLogout" class="text-gray-400 hover:text-white pl-3" style="border-left:1px solid grey" to="/login">Sign Out</button>
                 </div>
             </div>
         </div>

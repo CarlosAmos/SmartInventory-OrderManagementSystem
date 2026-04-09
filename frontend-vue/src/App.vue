@@ -14,7 +14,7 @@ const showNavbar = computed(() => {
 </script>
 
 <template>
-  <header v-if="showNavbar">
+  <header v-if="showNavbar" class="p-0 py-10 sm:px-[5%] md:px-[10%]">
     <Navbar />
   </header>
   <RouterView />
@@ -23,9 +23,9 @@ const showNavbar = computed(() => {
 <style scoped>
 header {
   width: 100%;
-  background: black;
+  background-color: #232833;
   height:70px;
-  padding:20px 10%;
+  /* padding:20px 10%; */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -40,7 +40,6 @@ header {
   header {
     display: flex;
     place-items: center;
-    background-color: #232833;
   }
 
   .logo {
