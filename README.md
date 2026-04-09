@@ -1,21 +1,69 @@
-# SmartInventory-OrderManagementSystem
+# Smart Inventory & Order Management System
 
-# Install dependencies
+Technical assessment demonstrating a decoupled Laravel API + Vue.js SPA architecture with robust stock concurrency management.
+
+## Overview
+Full-stack inventory management system for a PC parts shop featuring:
+- Real-time stock monitoring with auto-refresh
+- Concurrent order handling with pessimistic locking
+- Token-based API authentication
+- Client-side cart with state persistence
+- Comprehensive error handling and validation
+
+## Tech Stack
+### Backend
+- **Laravel 11** - PHP Framework
+- **SQLite** - Database (in-memory for tests)
+- **Laravel Sanctum** - API Token Authentication
+- **PHPUnit** - Testing Framework
+
+### Frontend
+- **Vue 3** - Frontend Framework (Composition API)
+- **Pinia** - State Management (Auth + Cart)
+- **TanStack Query** - Data Fetching & Caching
+- **Tailwind CSS** - Styling
+- **Vue Router** - Client-side Routing
+- **Axios** - HTTP Client
+
+## Installation
+### Prerequisites
+- PHP 8.2+
+- Composer
+- Node.js 18+
+- npm
+
+### BACKEND Setup
+
+```bash
+cd backend-laravel
 composer install
-npm install
-
-# Copy environment file
 cp .env.example .env
-
-# Generate app key
-php artisan key:generate
-
-# Create SQLite database
 touch database/database.sqlite
-
-# Run migrations and seeders
+php artisan key:generate
 php artisan migrate --seed
-
-# Start the application
 php artisan serve
+```
+
+The API will be available at `http://localhost:8000`
+
+### FRONTEND SETUP
+
+```bash
+cd frontend-vue
+npm install
 npm run dev
+```
+
+The SPA will be available at `http://localhost:5173`
+
+## Login Credentials
+
+- **Username:** `testuser@email.com`
+- **Password:** `password123`
+
+## Running Tests
+
+```bash
+cd backend-laravel
+php artisan test
+```

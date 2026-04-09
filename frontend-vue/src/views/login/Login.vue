@@ -35,7 +35,7 @@ const handleLogin = async () => {
   try {
     await authService.login(username.value, password.value);
     console.log('Login successful!');
-    router.push('/');
+    router.push('/products');
   } catch (error) {
     console.error('Login error:', error);
     

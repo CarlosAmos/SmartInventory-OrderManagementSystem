@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import authService from '@/services/authService';
 import { useAuthStore } from '@/stores/authStore';
 import ProductListView from '../views/products/ProductListView.vue';
 import OrdersView from '../views/orders/OrdersView.vue';
@@ -40,10 +39,13 @@ router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
   
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+     console.log('Redirecting to login - no auth')
     next('/login');
   } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
+    console.log('Redirecting to home - already authenticated')
     next('/products');
   } else {
+    console.log('Allowing navigation')
     next();
   }
 });

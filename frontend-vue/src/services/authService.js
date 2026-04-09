@@ -8,7 +8,7 @@ export default {
       password 
     });
     
-    const { token, user } = response.data
+    const { access_token: token, user } = response.data
 
     // ? Store token and user using pinia
     const authStore = useAuthStore()
