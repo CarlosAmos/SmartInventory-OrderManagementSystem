@@ -1,19 +1,19 @@
-import './assets/main.css'
+import './assets/main.css';
 
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
-import { VueQueryPlugin } from '@tanstack/vue-query'
-import Toast from 'vue-toastification'
-import 'vue-toastification/dist/index.css'
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import { VueQueryPlugin } from '@tanstack/vue-query';
+import Toast from 'vue-toastification';
+import 'vue-toastification/dist/index.css';
 
-import App from './App.vue'
-import router from './router'
+import App from './App.vue';
+import router from './router';
 
-const app = createApp(App)
+const app = createApp(App);
 
-app.use(createPinia())
-app.use(router)
-app.use(VueQueryPlugin)
+app.use(createPinia());
+app.use(router);
+app.use(VueQueryPlugin);
 app.use(Toast, {
   position: 'bottom-right',
   timeout: 3000,
@@ -24,5 +24,5 @@ app.use(Toast, {
   showCloseButtonOnHover: false,
   hideProgressBar: false,
   icon: true,
-})
-app.mount('#app')
+});
+app.mount('#app');

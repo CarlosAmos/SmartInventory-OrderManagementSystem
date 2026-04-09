@@ -1,142 +1,142 @@
 <script setup>
-import { useRouter } from 'vue-router'
-import { useToast } from 'vue-toastification'
-import { useCartStore } from '@/stores/cartStore'
-import orderService from '@/services/orderService'
-import productService from '@/services/productService'
-import { computed, nextTick, ref } from 'vue'
+import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toastification';
+import { useCartStore } from '@/stores/cartStore';
+import orderService from '@/services/orderService';
+import productService from '@/services/productService';
+import { computed, nextTick, ref } from 'vue';
 
-const router = useRouter()
-const toast = useToast()
-const cartStore = useCartStore()
-const activeToastId = ref(null)
-const errorInputs = ref(new Set())
-const isProcessing = ref(false)
+const router = useRouter();
+const toast = useToast();
+const cartStore = useCartStore();
+const activeToastId = ref(null);
+const errorInputs = ref(new Set());
+const isProcessing = ref(false);
 
-const gst = computed(() => cartStore.cartTotal * 0.1)
-const total = computed(() => cartStore.cartTotal + gst.value)
+const gst = computed(() => cartStore.cartTotal * 0.1);
+const total = computed(() => cartStore.cartTotal + gst.value);
 
 const getStockBadgeClass = (item) => {
   if (item.stock === 0) {
-    return 'bg-red-400/30 text-red-600 border-red-600'
+    return 'bg-red-400/30 text-red-600 border-red-600';
   } else if (item.stock < 5) {
-    return 'bg-orange-400/30 text-orange-600 border-orange-600'
+    return 'bg-orange-400/30 text-orange-600 border-orange-600';
   } else {
-    return 'bg-green-400/30 text-green-600 border-green-600'
+    return 'bg-green-400/30 text-green-600 border-green-600';
   }
 }
 
 const getStockText = (item) => {
   if (item.stock === 0) {
-    return 'OUT OF STOCK'
+    return 'OUT OF STOCK';
   } else if (item.stock < 5) {
-    return 'LOW STOCK'
+    return 'LOW STOCK';
   } else {
-    return 'IN STOCK'
+    return 'IN STOCK';
   }
 }
 
 const showStockLimitToast = (stock) => {
   if (activeToastId.value) {
-    return
+    return;
   }
 
   activeToastId.value = toast.error(`Only ${stock} items available in stock. Quantity set to maximum.`, {
     onClose: () => {
-      activeToastId.value = null
+      activeToastId.value = null;
     }
   })
 }
 
 const flashInputError = (itemId) => {
-  errorInputs.value.add(itemId)
+  errorInputs.value.add(itemId);
   
   setTimeout(() => {
-    errorInputs.value.delete(itemId)
-  }, 2000)
+    errorInputs.value.delete(itemId);
+  }, 2000);
 }
 
 const isInputError = (itemId) => {
-  return errorInputs.value.has(itemId)
+  return errorInputs.value.has(itemId);
 }
 
 const updateQuantity = (item, newQuantity, event) => {
-  const quantity = parseInt(newQuantity)
+  const quantity = parseInt(newQuantity);
   
   if (isNaN(quantity) || quantity < 1) {
-    cartStore.updateQuantity(item.id, 1)
+    cartStore.updateQuantity(item.id, 1);
     if (event && event.target) {
       nextTick(() => {
-        event.target.value = 1
+        event.target.value = 1;
       })
     }
-    return
+    return;
   }
   
   if (quantity > item.stock) {
     cartStore.updateQuantity(item.id, item.stock)
-    showStockLimitToast(item.stock)
-    flashInputError(item.id)
+    showStockLimitToast(item.stock);
+    flashInputError(item.id);
     if (event && event.target) {
       nextTick(() => {
-        event.target.value = item.stock
+        event.target.value = item.stock;
       })
     }
-    return
+    return;
   }
   
-  cartStore.updateQuantity(item.id, quantity)
+  cartStore.updateQuantity(item.id, quantity);
 }
 
 const incrementQuantity = (item) => {
-  updateQuantity(item, item.quantity + 1, null)
+  updateQuantity(item, item.quantity + 1, null);
 }
 
 const decrementQuantity = (item) => {
-  updateQuantity(item, item.quantity - 1, null)
+  updateQuantity(item, item.quantity - 1, null);
 }
 
 const removeItem = (item) => {
-  cartStore.removeFromCart(item.id)
-  toast.success(`${item.name} removed from cart`)
+  cartStore.removeFromCart(item.id);
+  toast.success(`${item.name} removed from cart`);
 }
 
 const proceedToCheckout = async () => {
   if (cartStore.items.length === 0) {
-    toast.error('Your cart is empty')
-    return
+    toast.error('Your cart is empty');
+    return;
   }
 
   if (isProcessing.value) {
-    return
+    return;
   }
 
-  isProcessing.value = true
+  isProcessing.value = true;
 
   try {
-    const productIds = cartStore.items.map(item => item.id)
+    const productIds = cartStore.items.map(item => item.id);
           
-    const currentProducts = await productService.getProducts()
+    const currentProducts = await productService.getProducts();
       
     for (const cartItem of cartStore.items) {
-      const currentProduct = currentProducts.find(p => p.id === cartItem.id)
+      const currentProduct = currentProducts.find(p => p.id === cartItem.id);
       
       if (!currentProduct) {
-        toast.error(`${cartItem.name} is no longer available`)
-        cartStore.removeFromCart(cartItem.id)
-        isProcessing.value = false
+        toast.error(`${cartItem.name} is no longer available`);
+        cartStore.removeFromCart(cartItem.id);
+        isProcessing.value = false;
         return
       }
       
       if (currentProduct.stock < cartItem.quantity) {
-        toast.error(`Insufficient stock for ${cartItem.name}. Only ${currentProduct.stock} available.`)
-        cartItem.stock = currentProduct.stock
+        toast.error(`Insufficient stock for ${cartItem.name}. Only ${currentProduct.stock} available.`);
+        cartItem.stock = currentProduct.stock;
         if (currentProduct.stock > 0) {
-          cartStore.updateQuantity(cartItem.id, currentProduct.stock)
+          cartStore.updateQuantity(cartItem.id, currentProduct.stock);
         } else {
-          cartStore.removeFromCart(cartItem.id)
+          cartStore.removeFromCart(cartItem.id);
         }
-        isProcessing.value = false
+        isProcessing.value = false;
         return
       }
     }
@@ -144,17 +144,17 @@ const proceedToCheckout = async () => {
     const items = cartStore.items.map(item => ({
       product_id: item.id,
       quantity: item.quantity
-    }))
+    }));
         
-    const response = await orderService.createOrder(items)
+    const response = await orderService.createOrder(items);
     console.log(response);
     
-    toast.success('Order completed successfully!')
+    toast.success('Order completed successfully!');
     
     setTimeout(() => {
-      cartStore.clearCart()
-      router.push('/orders')
-    }, 300)
+      cartStore.clearCart();
+      router.push('/orders');
+    }, 300);
 
   } catch (error) {
     console.error('Order creation error:', error)

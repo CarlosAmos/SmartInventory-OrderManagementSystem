@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Http\Requests\CreateOrderRequest;
 use App\Services\OrderService;
 use Illuminate\Validation\ValidationException;
+use App\Http\Resources\OrderResource;
 
 class OrderController extends Controller
 {
@@ -20,18 +21,20 @@ class OrderController extends Controller
 
     public function index()
     {
-        $order = 1;
-        $order = Order::with(['products'])->where('user_id', auth()->id())->get();
-        return response()->json($order);
+        $orders = Order::with(['products'])
+            ->where('user_id', auth()->id())
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return OrderResource::collection($orders);
     }
 
     public function show($id)
     {
-        $order = 1;
-        $order = Order::with(['products'])
+        $orders = Order::with(['products'])
             ->where('user_id', auth()->id())
+            ->orderBy('created_at', 'desc')
             ->findOrFail($id);
-        return response()->json($order);
+        return OrderResource::collection($orders);
     }
 
     public function store(CreateOrderRequest $request)

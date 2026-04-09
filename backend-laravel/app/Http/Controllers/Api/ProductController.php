@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Http\Resources\ProductResource;
 
 class ProductController extends Controller
 {
@@ -13,25 +14,8 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-         $query = Product::with('category');
-
-        // Filter by category
-        if ($request->has('category')) {
-            $query->where('category_id', $request->category);
-        }
-
-        // Search by name or SKU
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%");
-            });
-        }
-
-        $products = $query->get();
-
-        return response()->json($products);
+        $products = Product::with('category')->get();
+        return ProductResource::collection($products);
     }
 
     /**
@@ -45,7 +29,7 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Product $product)
+    public function show($id)
     {
         //
         $product = Product::with('category')->findOrFail($id);

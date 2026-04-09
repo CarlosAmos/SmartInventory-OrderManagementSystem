@@ -1,66 +1,66 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
-import authService from '@/services/authService'
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { useRouter } from 'vue-router';
+import authService from '@/services/authService';
 
-const router = useRouter()
-const showPassword = ref(false)
-const username = ref('')
-const password = ref('')
+const router = useRouter();
+const showPassword = ref(false);
+const username = ref('');
+const password = ref('');
 
 // Error states
-const loginError = ref(false)
-const usernameError = ref('')
-const passwordError = ref('')
+const loginError = ref(false);
+const usernameError = ref('');
+const passwordError = ref('');
 
 // Debug: Check if component is mounting/unmounting
 onMounted(() => {
-  console.log('LoginPage MOUNTED')
-})
+  console.log('LoginPage MOUNTED');
+});
 
 onBeforeUnmount(() => {
-  console.log('LoginPage UNMOUNTING')
-})
+  console.log('LoginPage UNMOUNTING');
+});
 
 const clearErrors = () => {
-  loginError.value = false
-  usernameError.value = ''
-  passwordError.value = ''
+  loginError.value = false;
+  usernameError.value = '';
+  passwordError.value = '';
 }
 
 const handleLogin = async () => {
-  console.log('handleLogin called!')
-  clearErrors()
+  console.log('handleLogin called!');
+  clearErrors();
   
   try {
-    await authService.login(username.value, password.value)
-    console.log('Login successful!')
-    router.push('/')
+    await authService.login(username.value, password.value);
+    console.log('Login successful!');
+    router.push('/');
   } catch (error) {
-    console.error('Login error:', error)
+    console.error('Login error:', error);
     
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('user')
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
     
     if (error.response?.status === 401) {
-      loginError.value = true
-      usernameError.value = ' '
-      passwordError.value = ' '
-      console.log('401 error - setting loginError to true')
-      console.log('loginError.value is now:', loginError.value)
+      loginError.value = true;
+      usernameError.value = ' ';
+      passwordError.value = ' ';
+      console.log('401 error - setting loginError to true');
+      console.log('loginError.value is now:', loginError.value);
       
       // Debug: Check after a delay
       setTimeout(() => {
-        console.log('After 1 second, loginError is:', loginError.value)
-      }, 1000)
+        console.log('After 1 second, loginError is:', loginError.value);
+      }, 1000);
     } else if (error.response?.status === 422) {
-      const errors = error.response.data.errors
-      if (errors.email) usernameError.value = errors.email[0]
-      if (errors.password) passwordError.value = errors.password[0]
-      console.log('422 error - validation failed')
+      const errors = error.response.data.errors;
+      if (errors.email) usernameError.value = errors.email[0];
+      if (errors.password) passwordError.value = errors.password[0];
+      console.log('422 error - validation failed');
     } else {
-      loginError.value = true
-      console.log('Other error:', error.response?.status)
+      loginError.value = true;
+      console.log('Other error:', error.response?.status);
     }
   }
 }

@@ -1,16 +1,16 @@
 <script setup>
-import { useRouter } from 'vue-router'
-import authService from '@/services/authService'
-import { useCartStore } from '@/stores/cartStore'
-import { useAuthStore } from '@/stores/authStore'
+import { useRouter } from 'vue-router';
+import authService from '@/services/authService';
+import { useCartStore } from '@/stores/cartStore';
+import { useAuthStore } from '@/stores/authStore';
 
-const router = useRouter()
-const cartStore = useCartStore()
-const authStore = useAuthStore()
+const router = useRouter();
+const cartStore = useCartStore();
+const authStore = useAuthStore();
 
 const handleLogout = async () => {
-  await authService.logout()
-  router.push('/login')
+  await authService.logout();
+  router.push('/login');
 }
 </script>
 

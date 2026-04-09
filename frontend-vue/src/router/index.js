@@ -1,11 +1,10 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import authService from '@/services/authService'
-import { useAuthStore } from '@/stores/authStore'
-import HomeView from '../views/HomeView.vue'
-import ProductListView from '../views/products/ProductListView.vue'
-import OrdersView from '../views/orders/OrdersView.vue'
-import CartView from '../views/orders/CartView.vue'
-import LoginView from '../views/login/Login.vue'
+import { createRouter, createWebHistory } from 'vue-router';
+import authService from '@/services/authService';
+import { useAuthStore } from '@/stores/authStore';
+import ProductListView from '../views/products/ProductListView.vue';
+import OrdersView from '../views/orders/OrdersView.vue';
+import CartView from '../views/orders/CartView.vue';
+import LoginView from '../views/login/Login.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -35,18 +34,18 @@ const router = createRouter({
       meta: { requiresAuth: true }
     }
   ],
-})
+});
 
 router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore()
+  const authStore = useAuthStore();
   
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next('/login')
+    next('/login');
   } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
-    next('/products')
+    next('/products');
   } else {
-    next()
+    next();
   }
-})
+});
 
-export default router
+export default router;

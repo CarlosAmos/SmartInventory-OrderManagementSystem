@@ -6,48 +6,48 @@ export default {
     const response = await apiClient.post('/login', { 
       email, 
       password 
-    })
+    });
     
     const { token, user } = response.data
 
     // ? Store token and user using pinia
     const authStore = useAuthStore()
-    authStore.setAuth(token, user)
+    authStore.setAuth(token, user);
     
-    return response.data
+    return response.data;
   },
 
   async logout() {
     try {
-      await apiClient.post('/logout')
+      await apiClient.post('/logout');
     } finally {
-      const authStore = useAuthStore()
-      authStore.clearAuth()
+      const authStore = useAuthStore();
+      authStore.clearAuth();
     }
   },
 
   async getUser() {
-    const response = await apiClient.get('/me')
+    const response = await apiClient.get('/me');
     
     // ? Update user in store
-    const authStore = useAuthStore()
-    authStore.user = response.data
-    localStorage.setItem('user', JSON.stringify(response.data))
+    const authStore = useAuthStore();
+    authStore.user = response.data;
+    localStorage.setItem('user', JSON.stringify(response.data));
     
-    return response.data
+    return response.data;
   },
 
   isAuthenticated() {
-    const authStore = useAuthStore()
-    return authStore.isAuthenticated
+    const authStore = useAuthStore();
+    return authStore.isAuthenticated;
   },
 
   getToken() {
-    return localStorage.getItem('auth_token')
+    return localStorage.getItem('auth_token');
   },
 
   getCurrentUser() {
-    const user = localStorage.getItem('user')
+    const user = localStorage.getItem('user');
     return user ? JSON.parse(user) : null
   }
 }

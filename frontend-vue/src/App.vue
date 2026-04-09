@@ -1,16 +1,15 @@
 <script setup>
-import { computed } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
-import Navbar from './components/Navbar.vue'
+import { computed } from 'vue';
+import { RouterLink, RouterView, useRoute } from 'vue-router';
+import Navbar from './components/Navbar.vue';
 
-const route = useRoute()
+const route = useRoute();
 
-const hideNavbarOn = ['login']
+const hideNavbarOn = ['login'];
 
 const showNavbar = computed(() => {
-  return !hideNavbarOn.includes(route.name)
-})
+  return !hideNavbarOn.includes(route.name);
+});
 
 </script>
 

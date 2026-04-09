@@ -17,20 +17,20 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   const itemCount = computed(() => {
-    return items.value.reduce((total, item) => total + item.quantity, 0)
+    return items.value.reduce((total, item) => total + item.quantity, 0);
   })
 
   const cartTotal = computed(() => {
     return items.value.reduce((total, item) => {
-      return total + (item.price * item.quantity)
+      return total + (item.price * item.quantity);
     }, 0)
   })
 
   const addToCart = (product, quantity = 1) => {
-    const existingItem = items.value.find(item => item.id === product.id)
+    const existingItem = items.value.find(item => item.id === product.id);
 
     if (existingItem) {
-      existingItem.quantity += quantity
+      existingItem.quantity += quantity;
     } else {
       items.value.push({
         id: product.id,
@@ -40,10 +40,10 @@ export const useCartStore = defineStore('cart', () => {
         quantity: quantity,
         stock: product.stock,
         image_url: product.image_url
-      })
+      });
     }
 
-    saveCart()
+    saveCart();
   }
 
   const removeFromCart = (productId) => {
