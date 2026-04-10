@@ -31,6 +31,7 @@ Full-stack inventory management system for a PC parts shop featuring:
 - Composer
 - Node.js 18+
 - npm
+- git bash (To run setup commands)
 
 ### BACKEND Setup
 
