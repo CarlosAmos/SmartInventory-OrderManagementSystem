@@ -133,7 +133,7 @@ const addToOrder = (product) => {
 
     <div v-if="loading" class="text-center py-20">
       <!-- <p class="text-gray-600">Loading products...</p> -->
-      <LoadingSpinner message="Test" />
+      <LoadingSpinner size="sm" message="Test" />
     </div>
     
     <div v-else-if="isError" class="text-center py-20">
@@ -207,9 +207,3 @@ const addToOrder = (product) => {
     </div>
   </div>
 </template>
-
-<style>
-
-
-
-</style>

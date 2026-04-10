@@ -93,7 +93,7 @@ onMounted(() => {
         <tbody class="bg-white divide-y divide-gray-200">
           <tr v-if="loading">
             <td colspan="6">
-              <LoadingSpinner message="Loading Orders" />
+              <LoadingSpinner size="sm" message="Loading Orders" />
             </td>
           </tr>
 

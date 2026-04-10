@@ -34,7 +34,7 @@ const handleLogout = async () => {
     </nav>
 </template>
 
-<style scope>
+<style scoped>
 nav {
     font-size: 12px;
     text-align: center;

@@ -3,8 +3,8 @@ import apiClient from '@/api/client'
 export default {
   async createOrder(items) {
     console.log("Made it to here ReS");
-    const response = await apiClient.post('/orders', { items });
-    return response.data.data;
+    const response = await apiClient.post('/orders',  items );
+    return response.data;
   },
 
   async getOrders() {    

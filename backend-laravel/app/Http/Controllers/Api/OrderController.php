@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use App\Http\Requests\CreateOrderRequest;
 use App\Services\OrderService;
 use Illuminate\Validation\ValidationException;
 use App\Http\Resources\OrderResource;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class OrderController extends Controller
 {
@@ -19,7 +21,7 @@ class OrderController extends Controller
         $this->orderService = $orderService;
     }
 
-    public function index()
+    public function index(): AnonymousResourceCollection
     {
         $orders = Order::with(['products'])
             ->where('user_id', auth()->id())
@@ -28,7 +30,7 @@ class OrderController extends Controller
         return OrderResource::collection($orders);
     }
 
-    public function show($id)
+    public function show($id): AnonymousResourceCollection
     {
         $orders = Order::with(['products'])
             ->where('user_id', auth()->id())
@@ -37,7 +39,7 @@ class OrderController extends Controller
         return OrderResource::collection($orders);
     }
 
-    public function store(CreateOrderRequest $request)
+    public function store(CreateOrderRequest $request): JsonResponse
     {
         try {
             $order = $this->orderService->createOrder(

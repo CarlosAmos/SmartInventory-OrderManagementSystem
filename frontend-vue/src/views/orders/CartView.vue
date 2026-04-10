@@ -1,339 +1,268 @@
 <script setup>
-import { useRouter } from 'vue-router';
-import { useToast } from 'vue-toastification';
-import { useCartStore } from '@/stores/cartStore';
-import orderService from '@/services/orderService';
-import productService from '@/services/productService';
-import { computed, nextTick, ref } from 'vue';
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useCartStore } from '@/stores/cartStore'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useToast } from 'vue-toastification'
+import orderService from '@/services/orderService'
+import OrderModal from '@/components/OrderModal.vue'
 
-const router = useRouter();
-const toast = useToast();
-const cartStore = useCartStore();
-const activeToastId = ref(null);
-const errorInputs = ref(new Set());
-const isProcessing = ref(false);
+const router = useRouter()
+const cartStore = useCartStore()
+const toast = useToast()
+const queryClient = useQueryClient()
 
-const gst = computed(() => cartStore.cartTotal * 0.1);
-const total = computed(() => cartStore.cartTotal + gst.value);
+// Modal state
+const showModal = ref(false)
+const modalState = ref('processing') // 'processing', 'success', 'error'
+const modalErrorMessage = ref('')
+const orderData = ref({})
 
-const getStockBadgeClass = (item) => {
-  if (item.stock === 0) {
-    return 'bg-red-400/30 text-red-600 border-red-600';
-  } else if (item.stock < 5) {
-    return 'bg-orange-400/30 text-orange-600 border-orange-600';
-  } else {
-    return 'bg-green-400/30 text-green-600 border-green-600';
-  }
+const cartItems = computed(() => cartStore.items)
+const itemCount = computed(() => cartStore.itemCount)
+const subtotal = computed(() => cartStore.subtotal)
+const gst = computed(() => cartStore.gst)
+const total = computed(() => cartStore.total)
+
+// Helper to get product ID (handles both flat and nested structures)
+const getProductId = (item) => {
+  return item.product?.id || item.id
 }
 
-const getStockText = (item) => {
-  if (item.stock === 0) {
-    return 'OUT OF STOCK';
-  } else if (item.stock < 5) {
-    return 'LOW STOCK';
-  } else {
-    return 'IN STOCK';
-  }
+// Helper to get product property (handles both structures)
+const getProductProp = (item, prop) => {
+  return item.product?.[prop] || item[prop]
 }
 
-const showStockLimitToast = (stock) => {
-  if (activeToastId.value) {
-    return;
-  }
-
-  activeToastId.value = toast.error(`Only ${stock} items available in stock. Quantity set to maximum.`, {
-    onClose: () => {
-      activeToastId.value = null;
-    }
-  })
-}
-
-const flashInputError = (itemId) => {
-  errorInputs.value.add(itemId);
+const updateQuantity = (productId, newQuantity) => {
+  if (newQuantity < 1) return
   
-  setTimeout(() => {
-    errorInputs.value.delete(itemId);
-  }, 2000);
-}
-
-const isInputError = (itemId) => {
-  return errorInputs.value.has(itemId);
-}
-
-const updateQuantity = (item, newQuantity, event) => {
-  const quantity = parseInt(newQuantity);
+  const item = cartItems.value.find(i => getProductId(i) === productId)
+  const stock = getProductProp(item, 'stock')
   
-  if (isNaN(quantity) || quantity < 1) {
-    cartStore.updateQuantity(item.id, 1);
-    if (event && event.target) {
-      nextTick(() => {
-        event.target.value = 1;
-      })
-    }
-    return;
+  if (item && newQuantity > stock) {
+    toast.error(`Only ${stock} units available`)
+    return
   }
   
-  if (quantity > item.stock) {
-    cartStore.updateQuantity(item.id, item.stock)
-    showStockLimitToast(item.stock);
-    flashInputError(item.id);
-    if (event && event.target) {
-      nextTick(() => {
-        event.target.value = item.stock;
-      })
-    }
-    return;
-  }
-  
-  cartStore.updateQuantity(item.id, quantity);
+  cartStore.updateQuantity(productId, newQuantity)
 }
 
-const incrementQuantity = (item) => {
-  updateQuantity(item, item.quantity + 1, null);
+const removeFromCart = (productId) => {
+  cartStore.removeFromCart(productId)
+  toast.info('Item removed from cart')
 }
 
-const decrementQuantity = (item) => {
-  updateQuantity(item, item.quantity - 1, null);
+const clearCart = () => {
+  cartStore.clearCart()
+  toast.info('Cart cleared')
 }
 
-const removeItem = (item) => {
-  cartStore.removeFromCart(item.id);
-  toast.success(`${item.name} removed from cart`);
-}
-
-const proceedToCheckout = async () => {
-  if (cartStore.items.length === 0) {
-    toast.error('Your cart is empty');
-    return;
-  }
-
-  if (isProcessing.value) {
-    return;
-  }
-
-  isProcessing.value = true;
-
-  try {
-    const productIds = cartStore.items.map(item => item.id);
-          
-    const currentProducts = await productService.getProducts();
-      
-    for (const cartItem of cartStore.items) {
-      const currentProduct = currentProducts.find(p => p.id === cartItem.id);
-      
-      if (!currentProduct) {
-        toast.error(`${cartItem.name} is no longer available`);
-        cartStore.removeFromCart(cartItem.id);
-        isProcessing.value = false;
-        return
-      }
-      
-      if (currentProduct.stock < cartItem.quantity) {
-        toast.error(`Insufficient stock for ${cartItem.name}. Only ${currentProduct.stock} available.`);
-        cartItem.stock = currentProduct.stock;
-        if (currentProduct.stock > 0) {
-          cartStore.updateQuantity(cartItem.id, currentProduct.stock);
-        } else {
-          cartStore.removeFromCart(cartItem.id);
-        }
-        isProcessing.value = false;
-        return
-      }
-    }
-
-    const items = cartStore.items.map(item => ({
-      product_id: item.id,
-      quantity: item.quantity
-    }));
-        
-    const response = await orderService.createOrder(items);
-    console.log(response);
+// Create order mutation
+const createOrderMutation = useMutation({
+  mutationFn: orderService.createOrder,
+  onSuccess: (data) => {
+    console.log('Order success response:', data) // DEBUG: See actual structure
     
-    toast.success('Order completed successfully!');
+    queryClient.invalidateQueries({ queryKey: ['orders'] })
+    queryClient.invalidateQueries({ queryKey: ['products'] })
+    
+    modalState.value = 'success'
+    
+    // Handle both possible response structures
+    orderData.value = data.order || data.data || data
+    
+    cartStore.clearCart()
     
     setTimeout(() => {
-      cartStore.clearCart();
-      router.push('/orders');
-    }, 300);
-
-  } catch (error) {
+      showModal.value = false
+      router.push('/orders')
+    }, 3000)
+  },
+  onError: (error) => {
     console.error('Order creation error:', error)
-
-    if (error.response?.status === 422) {
-      const errors = error.response.data.errors
-
-      if (errors.stock) {
-        toast.error(errors.stock[0])
-      } else if (errors.product) {
-        toast.error(errors.product[0])
-      } else {
-        toast.error('Please check your cart and try again')
-      }
-    } else if (error.response?.status === 401) {
-      toast.error('Please login to place an order')
-      router.push('/login')
-    } else {
-      toast.error('Failed to create order. Please try again.')
+    
+    let errorMsg = 'An unexpected error occurred. Please try again.'
+    
+    if (error.response?.data?.errors?.stock) {
+      errorMsg = error.response.data.errors.stock[0]
+    } else if (error.response?.data?.message) {
+      errorMsg = error.response.data.message
+    } else if (error.message) {
+      errorMsg = error.message
     }
-  } finally {
-    isProcessing.value = false
+    
+    modalState.value = 'error'
+    modalErrorMessage.value = errorMsg
+  }
+})
+
+const proceedToCheckout = async () => {
+  if (itemCount.value === 0) {
+    toast.error('Your cart is empty')
+    return
+  }
+
+  // Show modal in processing state
+  showModal.value = true
+  modalState.value = 'processing'
+  
+  // Prepare order items (handles both flat and nested structures)
+  const items = cartItems.value.map(item => ({
+    product_id: getProductId(item),
+    quantity: item.quantity
+  }))
+
+  // Trigger mutation
+  createOrderMutation.mutate({ items })
+}
+
+const closeModal = () => {
+  showModal.value = false
+  
+  // If error, don't redirect - let user try again
+  if (modalState.value === 'error') {
+    // Modal stays closed, user can modify cart
   }
 }
+
+console.log("Cart Items",cartItems);
 </script>
 
 <template>
-  <div class="px-40 py-20">
+  <div class="px-4 md:px-20 lg:px-40 py-10 md:py-20">
+    <!-- Order Modal -->
+    <OrderModal
+      v-if="showModal"
+      :state="modalState"
+      :error-message="modalErrorMessage"
+      :order-data="orderData"
+      @close="closeModal"
+    />
+
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+
     <!-- Empty Cart State -->
-    <div v-if="cartStore.items.length === 0" class="text-center py-20 bg-white rounded-lg shadow-sm border border-gray-200">
-      <p class="text-gray-600 text-lg mb-4">Your cart is empty</p>
+    <div v-if="itemCount === 0" class="text-center py-20">
+      <svg class="mx-auto h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+      <h2 class="mt-4 text-xl font-semibold text-gray-900">Your cart is empty</h2>
+      <p class="mt-2 text-gray-600">Start adding some products!</p>
       <router-link 
-        to="/"
-        class="inline-block px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
+        to="/" 
+        class="mt-6 inline-block px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
       >
         Browse Products
       </router-link>
     </div>
 
-    <!-- Cart with Items -->
+    <!-- Cart Items -->
     <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Cart Items Table (Left 2/3) -->
-      <div class="lg:col-span-2">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <!-- Table Header -->
-          <div class="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-50 border-b border-gray-200 font-semibold text-sm text-gray-700 uppercase">
-            <div class="col-span-2">IMAGE</div>
-            <div class="col-span-3">PRODUCT</div>
-            <div class="col-span-3">QUANTITY</div>
-            <div class="col-span-2 text-right">PRICE</div>
-            <div class="col-span-2 text-right">ACTION</div>
-          </div>
+      <!-- Cart Items List -->
+      <div class="lg:col-span-2 space-y-4">
+        <div
+          v-for="item in cartItems"
+          :key="getProductId(item)"
+          class="flex gap-4 p-4 bg-white border border-gray-200 rounded-lg"
+        >
+          <!-- Product Image -->
+          <img 
+            :src="getProductProp(item, 'image_url') || '/images/placeholder.png'"
+            :alt="getProductProp(item, 'name')"
+            class="w-24 h-24 object-cover rounded"
+          >
 
-          <!-- Cart Items -->
-          <div class="divide-y divide-gray-200">
-            <div
-              v-for="item in cartStore.items"
-              :key="item.id"
-              class="grid grid-cols-12 gap-4 px-6 py-6 items-center"
-            >
-              <!-- Image -->
-              <div class="col-span-2">
-                <img 
-                  :src="item.image_url || '/images/placeholder.png'" 
-                  :alt="item.name"
-                  class="w-full h-24 object-cover rounded-md bg-gray-100"
-                >
-              </div>
+          <!-- Product Details -->
+          <div class="flex-1">
+            <h3 class="font-semibold text-gray-900">{{ getProductProp(item, 'name') }}</h3>
+            <p class="text-sm text-gray-600">{{ getProductProp(item, 'category')?.name }}</p>
+            <p class="text-sm text-gray-500">SKU: {{ getProductProp(item, 'sku') }}</p>
+            <p class="text-lg font-medium text-gray-900 mt-2">
+              ${{ parseFloat(getProductProp(item, 'price')).toFixed(2) }}
+            </p>
 
-              <!-- Product Info -->
-              <div class="col-span-3">
-                <div 
-                  :class="[
-                    'inline-block border rounded-md px-2 py-[2px] font-medium text-xs mb-2',
-                    getStockBadgeClass(item)
-                  ]"
-                >
-                  {{ getStockText(item) }}
-                </div>
-                <h3 class="font-semibold text-gray-900 mb-1">{{ item.name }}</h3>
-                <p class="text-sm text-gray-600">SKU: {{ item.sku }}</p>
-              </div>
-
-              <!-- Quantity Controls -->
-              <div class="col-span-3">
-                <div class="flex items-center gap-2">
-                  <input 
-                    type="number" 
-                    :value="item.quantity"
-                    @input="updateQuantity(item, $event.target.value, $event)"
-                    @blur="updateQuantity(item, $event.target.value, $event)"
-                    :class="[
-                      'w-16 text-center rounded-md py-2 focus:outline-none transition-all duration-300 h-7',
-                      isInputError(item.id)
-                        ? 'border-2 border-red-500 focus:ring-2 focus:ring-red-500'
-                        : 'border border-gray-300 focus:ring-2 focus:ring-blue-500'
-                    ]"
-                    min="1"
-                    :max="item.stock"
-                  >
-                  <div class="flex flex-row">
-                    <button
-                      @click="decrementQuantity(item)"
-                      :disabled="item.quantity <= 1"
-                      class="px-2 py-1 border border-gray-300 rounded-b border-t-0 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-                    >
-                      −
-                    </button>
-                    <button
-                      @click="incrementQuantity(item)"
-                      :disabled="item.quantity >= item.stock"
-                      class="px-2 py-1 border border-gray-300 rounded-t hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Price -->
-              <div class="col-span-2 text-right">
-                <p class="font-semibold text-gray-900 text-lg">
-                  ${{ parseFloat(item.price).toFixed(2) }}
-                </p>
-              </div>
-
-              <!-- Remove Button -->
-              <div class="col-span-2 text-right">
-                <button
-                  @click="removeItem(item)"
-                  class="text-red-500 hover:text-red-700 font-medium text-sm transition-colors"
-                >
-                  Remove
-                </button>
-              </div>
+            <!-- Quantity Controls -->
+            <div class="flex items-center gap-3 mt-3">
+              <button
+                @click="updateQuantity(getProductId(item), item.quantity - 1)"
+                :disabled="item.quantity <= 1"
+                class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                -
+              </button>
+              <span class="w-12 text-center font-medium">{{ item.quantity }}</span>
+              <button
+                @click="updateQuantity(getProductId(item), item.quantity + 1)"
+                :disabled="item.quantity >= getProductProp(item, 'stock')"
+                class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                +
+              </button>
+              <span class="text-sm text-gray-500">
+                ({{ getProductProp(item, 'stock') }} available)
+              </span>
             </div>
           </div>
+
+          <!-- Remove Button -->
+          <button
+            @click="removeFromCart(getProductId(item))"
+            class="text-red-500 hover:text-red-700 self-start transition-colors"
+            title="Remove from cart"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
+
+        <!-- Clear Cart Button -->
+        <button
+          @click="clearCart"
+          class="text-red-500 hover:text-red-700 text-sm font-medium transition-colors"
+        >
+          Clear entire cart
+        </button>
       </div>
 
-      <!-- Order Summary (Right 1/3) -->
+      <!-- Order Summary -->
       <div class="lg:col-span-1">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-6">Summary</h2>
-
-          <div class="space-y-4 mb-6">
-            <div class="flex justify-between text-gray-700">
-              <span>Product Price</span>
-              <span>${{ cartStore.cartTotal.toFixed(2) }}</span>
+        <div class="bg-white border border-gray-200 rounded-lg p-6 sticky top-4">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Order Summary</h2>
+          
+          <div class="space-y-2 mb-4">
+            <div class="flex justify-between text-gray-600">
+              <span>Subtotal ({{ itemCount }} {{ itemCount === 1 ? 'item' : 'items' }})</span>
+              <span>${{ parseFloat(subtotal).toFixed(2) }}</span>
             </div>
-            <div class="flex justify-between text-gray-700">
-              <span>Subtotal</span>
-              <span>${{ cartStore.cartTotal.toFixed(2) }}</span>
-            </div>
-            <div class="flex justify-between text-gray-700">
-              <span>GST</span>
-              <span>${{ gst.toFixed(2) }}</span>
+            <div class="flex justify-between text-gray-600">
+              <span>GST (10%)</span>
+              <span>${{ parseFloat(gst).toFixed(2) }}</span>
             </div>
           </div>
 
-          <hr class="border-gray-300 my-6">
-
-          <div class="flex justify-between text-lg font-semibold text-gray-900 mb-6">
-            <span>Total</span>
-            <span>${{ total.toFixed(2) }}</span>
+          <div class="border-t border-gray-200 pt-4 mb-6">
+            <div class="flex justify-between text-lg font-semibold text-gray-900">
+              <span>Total</span>
+              <span>${{ parseFloat(total).toFixed(2) }}</span>
+            </div>
           </div>
 
           <button
             @click="proceedToCheckout"
-            :disabled="isProcessing"
-            :class="[
-              'w-full font-semibold py-3 px-4 rounded-lg transition-colors',
-              isProcessing
-                ? 'bg-gray-400 cursor-not-allowed text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            ]"
+            :disabled="createOrderMutation.isPending.value || itemCount === 0"
+            class="w-full px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {{ isProcessing ? 'Processing...' : 'Confirm Order' }}
+            {{ createOrderMutation.isPending.value ? 'Processing...' : 'Confirm Order' }}
           </button>
+
+          <router-link
+            to="/"
+            class="block text-center mt-4 text-blue-500 hover:text-blue-600 transition-colors"
+          >
+            Continue Shopping
+          </router-link>
         </div>
       </div>
     </div>
