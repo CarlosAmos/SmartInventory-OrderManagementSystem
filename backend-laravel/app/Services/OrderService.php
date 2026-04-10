@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
-use App\Models\Product;
+use App\Models\ProductStock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -17,49 +17,53 @@ class OrderService
         return DB::transaction(function () use ($userId, $items) {
             $total = 0;
             $orderItems = [];
-            
-            // STEP 1: Validate ALL products first (before any modifications)
-            foreach ($items as $item) {
-                $product = Product::lockForUpdate()->find($item['product_id']);
 
-                if (!$product) {
+            // STEP 1: Validate ALL stock first (before any modifications)
+            foreach ($items as $item) {
+                $productStock = ProductStock::where('product_id', $item['product_id'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$productStock) {
                     throw ValidationException::withMessages([
                         'product' => ["Product with ID {$item['product_id']} not found."]
                     ]);
                 }
 
-                // Validate stock availability
-                if ($product->stock < $item['quantity']) {
+                if ($productStock->quantity < $item['quantity']) {
                     throw ValidationException::withMessages([
-                        'stock' => ["Insufficient stock for {$product->name}. Only {$product->stock} available."]
+                        'stock' => [
+                            "Insufficient stock for {$productStock->product->name}. " .
+                            "Only {$productStock->quantity} available."
+                        ]
                     ]);
                 }
             }
 
             // STEP 2: All validations passed - now process the order
             foreach ($items as $item) {
-                // Re-fetch with lock (already validated above)
-                $product = Product::lockForUpdate()->find($item['product_id']);
+                $productStock = ProductStock::where('product_id', $item['product_id'])
+                    ->lockForUpdate()
+                    ->first();
 
-                // Store order item data (snapshot price)
+                $product = $productStock->product;
+
                 $orderItems[] = [
                     'product_id' => $product->id,
                     'quantity' => $item['quantity'],
                     'price' => $product->price,
                 ];
 
-                // Calculate running total
                 $total += $product->price * $item['quantity'];
 
-                // Decrement stock (safe because validation passed)
-                $product->decrement('stock', $item['quantity']);
+                $productStock->decrement('quantity', $item['quantity']);
             }
 
             // Calculate totals with GST
             $subtotal = $total;
             $gst = $total * 0.10;
             $totalWithGst = $subtotal + $gst;
-            
+
             // Create the order
             $order = Order::create([
                 'user_id' => $userId,

@@ -14,9 +14,9 @@ class ProductResource extends JsonResource
             'name' => $this->name,
             'sku' => $this->sku,
             'price' => $this->price,
-            'stock' => $this->stock,
+            'stock' => new ProductStockResource($this->whenLoaded('productStock')),
             'category' => new CategoryResource($this->whenLoaded('category')),
-            'created_at' => $this->created_at?->toDateTimeString(), 
+            'created_at' => $this->created_at?->toDateTimeString(),
         ];
     }
 }

@@ -34,12 +34,18 @@ const getProductProp = (item, prop) => {
   return item.product?.[prop] || item[prop]
 }
 
+// Helper to get numeric stock quantity from nested stock object
+const getStock = (item) => {
+  const stock = getProductProp(item, 'stock')
+  return stock?.quantity ?? stock ?? 0
+}
+
 const updateQuantity = (productId, newQuantity) => {
   if (newQuantity < 1) return
   
   const item = cartItems.value.find(i => getProductId(i) === productId)
-  const stock = getProductProp(item, 'stock')
-  
+  const stock = getStock(item)
+
   if (item && newQuantity > stock) {
     toast.error(`Only ${stock} units available`)
     return
@@ -194,13 +200,13 @@ console.log("Cart Items",cartItems);
               <span class="w-12 text-center font-medium">{{ item.quantity }}</span>
               <button
                 @click="updateQuantity(getProductId(item), item.quantity + 1)"
-                :disabled="item.quantity >= getProductProp(item, 'stock')"
+                :disabled="item.quantity >= getStock(item)"
                 class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 +
               </button>
               <span class="text-sm text-gray-500">
-                ({{ getProductProp(item, 'stock') }} available)
+                ({{ getStock(item) }} available)
               </span>
             </div>
           </div>

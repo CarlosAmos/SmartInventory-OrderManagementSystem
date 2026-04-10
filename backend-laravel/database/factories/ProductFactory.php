@@ -19,7 +19,7 @@ class ProductFactory extends Factory
     public function definition(): array
     {
         $adjectives = [
-            'Ultimate', 'Premium', 'Professional', 'Advanced', 'Elite', 
+            'Ultimate', 'Premium', 'Professional', 'Advanced', 'Elite',
             'Super', 'Mega', 'Hyper', 'Turbo', 'Quantum',
             'Digital', 'Smart', 'Pro', 'Max', 'Ultra',
             'Lightning', 'Thunder', 'Cosmic', 'Atomic', 'Blazing'
@@ -46,22 +46,7 @@ class ProductFactory extends Factory
             'name' => "{$adjective} {$noun} {$suffix}",
             'sku' => strtoupper(fake()->bothify('PC-???-####')),
             'price' => fake()->randomFloat(2, 29.99, 1999.99),
-            'stock' => fake()->numberBetween(0,10),
-            'category_id' => Category::inRandomOrder()->first()?->id ?? Category::factory(), // Use existing category or create one
+            'category_id' => Category::inRandomOrder()->first()?->id ?? Category::factory(),
         ];
-    }
-
-    public function outOfStock(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'stock' => 0,
-        ]);
-    }
-
-    public function lowStock(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'stock' => fake()->numberBetween(1, 5),
-        ]);
     }
 }

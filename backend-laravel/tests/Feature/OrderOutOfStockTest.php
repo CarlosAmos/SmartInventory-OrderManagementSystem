@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductStock;
 use App\Models\User;
 
 class OrderOutOfStockTest extends TestCase
@@ -19,9 +20,13 @@ class OrderOutOfStockTest extends TestCase
         $category = Category::create(['name' => 'Test Category']);
         $product = Product::factory()->create([
             'category_id' => $category->id,
-            'stock' => 0, // Out of stock
             'price' => 99.99,
         ]);
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => 0,
+        ]);
+
         $response = $this->actingAs($user)
             ->postJson('/api/orders', [
                 'items' => [
@@ -31,10 +36,11 @@ class OrderOutOfStockTest extends TestCase
                     ]
                 ]
             ]);
+
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['stock']);
         $this->assertStringContainsString('Insufficient stock', $response->json('errors.stock.0'));
-        
+
         $this->assertDatabaseCount('orders', 0);
     }
 
@@ -42,11 +48,14 @@ class OrderOutOfStockTest extends TestCase
     {
         $user = User::factory()->create();
         $category = Category::create(['name' => 'Test Category']);
-        $randomStockNumber = rand(1,9);
+        $randomStockNumber = rand(1, 9);
         $product = Product::factory()->create([
             'category_id' => $category->id,
             'price' => 49.99,
-            'stock' => $randomStockNumber, // Out of stock
+        ]);
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => $randomStockNumber,
         ]);
 
         $response = $this->actingAs($user)
@@ -61,12 +70,11 @@ class OrderOutOfStockTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['stock']);
+        $this->assertStringContainsString('Only ' . $randomStockNumber . ' available', $response->json('errors.stock.0'));
 
-        $this->assertStringContainsString('Only '.$randomStockNumber.' available', $response->json('errors.stock.0'));
-        
-        $this->assertDatabaseHas('products', [
-            'id' => $product->id,
-            'stock' => $randomStockNumber
+        $this->assertDatabaseHas('product_stock', [
+            'product_id' => $product->id,
+            'quantity' => $randomStockNumber,
         ]);
     }
 }

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductStock;
 use App\Models\User;
 
 class ConcurrentOrderTest extends TestCase
@@ -20,8 +21,11 @@ class ConcurrentOrderTest extends TestCase
         $category = Category::create(['name' => 'Test Category']);
         $product = Product::factory()->create([
             'category_id' => $category->id,
-            'stock' => 7, 
-            'price' => 100.00
+            'price' => 100.00,
+        ]);
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => 7,
         ]);
 
         $response1 = $this->actingAs($user)
@@ -49,8 +53,10 @@ class ConcurrentOrderTest extends TestCase
         $response2->assertStatus(422);
         $response2->assertJsonValidationErrors(['stock']);
 
-        $product->refresh();
-        $this->assertEquals(0, $product->stock);
+        $this->assertDatabaseHas('product_stock', [
+            'product_id' => $product->id,
+            'quantity' => 0,
+        ]);
 
         $this->assertDatabaseCount('orders', 1);
     }
@@ -58,25 +64,29 @@ class ConcurrentOrderTest extends TestCase
     // ! Pass
     public function test_database_trigger_prevents_negative_stock(): void
     {
-
         $category = Category::create(['name' => 'Test Category']);
         $product = Product::factory()->create([
             'category_id' => $category->id,
-            'stock' => 5,
-            'price' => 50.00
+            'price' => 50.00,
+        ]);
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => 5,
         ]);
 
         try {
-            DB::table('products')
-                ->where('id', $product->id)
-                ->update(['stock' => -5]);
-            
+            DB::table('product_stock')
+                ->where('product_id', $product->id)
+                ->update(['quantity' => -5]);
+
             $this->fail('Expected exception was not thrown');
         } catch (\Exception $e) {
-            $this->assertStringContainsString('Stock cannot be negative', $e->getMessage());
+            $this->assertStringContainsString('Stock quantity cannot be negative', $e->getMessage());
         }
 
-        $product->refresh();
-        $this->assertEquals(5, $product->stock);
+        $this->assertDatabaseHas('product_stock', [
+            'product_id' => $product->id,
+            'quantity' => 5,
+        ]);
     }
 }

@@ -12,7 +12,7 @@ Full-stack inventory management system for a PC parts shop featuring:
 
 ## Tech Stack
 ### Backend
-- **Laravel 11** - PHP Framework
+- **Laravel 12** - PHP Framework
 - **SQLite** - Database (in-memory for tests)
 - **Laravel Sanctum** - API Token Authentication
 - **PHPUnit** - Testing Framework

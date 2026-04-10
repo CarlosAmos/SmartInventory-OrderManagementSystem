@@ -15,7 +15,7 @@ class ProductController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = Product::with('category');        
+        $query = Product::with(['category', 'productStock']);
         // ? Filter by search term (name or SKU)
         if ($request->has('search') && $request->search) {
             $searchTerm = $request->search;

@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Product extends Model
@@ -16,39 +16,40 @@ class Product extends Model
         'name',
         'sku',
         'price',
-        'stock',
         'category_id',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
-        'stock' => 'integer',
     ];
 
-    // Check if in stock
-    public function inStock($quantity = 1): bool
+    public function inStock(int $quantity = 1): bool
     {
-        return $this->stock >= $quantity;
+        return $this->productStock?->quantity >= $quantity;
     }
 
-    // Decrement stock
-    public function decrementStock($quantity): bool
+    public function decrementStock(int $quantity): bool
     {
-        if ($this->stock >= $quantity) {
-            $this->decrement('stock', $quantity);
+        $stock = $this->productStock;
+
+        if ($stock && $stock->quantity >= $quantity) {
+            $stock->decrement('quantity', $quantity);
             return true;
         }
+
         return false;
     }
 
+    public function productStock(): HasOne
+    {
+        return $this->hasOne(ProductStock::class);
+    }
 
-    // A product belongs to a category
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
-    // A product can be in many orders
     public function orders(): BelongsToMany
     {
         return $this->belongsToMany(Order::class)

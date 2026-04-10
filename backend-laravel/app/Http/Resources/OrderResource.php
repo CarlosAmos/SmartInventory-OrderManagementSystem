@@ -19,7 +19,7 @@ class OrderResource extends JsonResource
             'total' => $this->total,
             'status' => $this->status,
             'products' => OrderProductResource::collection($this->whenLoaded('products')),
-            'created_at' => $this->created_at?->toDateTimeString()
+            'created_at' => $this->created_at?->toISOString()
         ];
     }
 }

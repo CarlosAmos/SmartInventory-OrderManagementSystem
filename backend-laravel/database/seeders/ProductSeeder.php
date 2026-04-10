@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Product;
+use App\Models\ProductStock;
 use App\Models\Category;
 
 class ProductSeeder extends Seeder
@@ -16,15 +16,29 @@ class ProductSeeder extends Seeder
     {
         $categories = Category::all();
 
-        // Create products for each category
+        // Create products with normal stock for each category
         $categories->each(function ($category) {
-            Product::factory()
-                ->count(2) 
+            $products = Product::factory()
+                ->count(2)
                 ->create(['category_id' => $category->id]);
+
+            $products->each(function ($product) {
+                ProductStock::factory()->create([
+                    'product_id' => $product->id,
+                    'quantity' => fake()->numberBetween(0, 10),
+                ]);
+            });
         });
 
         // Create some special stock scenarios
-        Product::factory()->count(5)->outOfStock()->create();
-        Product::factory()->count(5)->lowStock()->create();
+        $outOfStockProducts = Product::factory()->count(5)->create();
+        $outOfStockProducts->each(function ($product) {
+            ProductStock::factory()->outOfStock()->create(['product_id' => $product->id]);
+        });
+
+        $lowStockProducts = Product::factory()->count(5)->create();
+        $lowStockProducts->each(function ($product) {
+            ProductStock::factory()->lowStock()->create(['product_id' => $product->id]);
+        });
     }
 }

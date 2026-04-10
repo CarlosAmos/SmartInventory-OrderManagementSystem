@@ -56,14 +56,18 @@ const clearFilters = () => {
   selectedCategory.value = 'all'
 }
 
+const getStockQuantity = (product) => {
+  return product.stock?.quantity ?? 0
+}
+
 const isInStock = (product) => {
-  return product.stock > 0;
+  return getStockQuantity(product) > 0
 }
 
 const getStockIndicatorClass = (product) => {
-  if (product.stock === 0) {
+  if (product.stock?.is_out_of_stock) {
     return 'bg-red-400/30 text-red-600 border-red-600';
-  } else if (product.stock < 5) {
+  } else if (product.stock?.is_low_stock) {
     return 'bg-yellow-400/30 text-yellow-800 border-yellow-800';
   } else {
     return 'bg-green-400/30 text-green-600 border-green-600';
@@ -71,23 +75,43 @@ const getStockIndicatorClass = (product) => {
 }
 
 const getStockText = (product) => {
-  if (product.stock === 0) {
+  if (product.stock?.is_out_of_stock) {
     return 'OUT OF STOCK';
-  } else if (product.stock < 5) {
+  } else if (product.stock?.is_low_stock) {
     return 'LOW STOCK';
   } else {
     return 'IN STOCK';
   }
 }
 
+const getCartQuantity = (product) => {
+  return cartStore.items.find(i => i.id === product.id)?.quantity ?? 0
+}
+
+const activeToasts = new Set()
+
 const addToOrder = (product) => {
-  if (!isInStock(product)) {
+  const available = getStockQuantity(product)
+  const inCart = getCartQuantity(product)
+
+  if (available === 0) {
     toast.error('This product is out of stock');
     return;
   }
-  
+
+  if (inCart >= available) {
+    toast.error(`Only ${available} unit${available === 1 ? '' : 's'} available`);
+    return;
+  }
+
   cartStore.addToCart(product, 1);
-  toast.success(`${product.name} added to cart!`);
+
+  if (!activeToasts.has(product.id)) {
+    activeToasts.add(product.id)
+    toast.success(`${product.name} added to cart!`, {
+      onClose: () => activeToasts.delete(product.id)
+    })
+  }
 }
 </script>
 
@@ -102,7 +126,7 @@ const addToOrder = (product) => {
             @keyup.enter="handleSearch"
             type="text"
             placeholder="Search by product name or SKU..."
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            class="w-full md:w-[70%] px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           >
           <button
             v-if="searchQuery"
@@ -179,17 +203,22 @@ const addToOrder = (product) => {
           ${{ parseFloat(product.price).toFixed(2) }}
         </p>
 
-        <button 
+        <button
           @click="addToOrder(product)"
-          :disabled="!isInStock(product)"
+          :disabled="!isInStock(product) || getCartQuantity(product) >= getStockQuantity(product)"
           :class="[
             'w-full px-10 py-2 rounded-lg font-medium transition-colors',
-            isInStock(product)
-              ? 'bg-blue-500 hover:bg-blue-600 text-white'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            !isInStock(product) || getCartQuantity(product) >= getStockQuantity(product)
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-blue-500 hover:bg-blue-600 text-white'
           ]"
         >
-          Add to Order
+          <template v-if="getCartQuantity(product) >= getStockQuantity(product) && isInStock(product)">
+            All Stock in Cart
+          </template>
+          <template v-else>
+            Add to Order<span v-if="getCartQuantity(product) > 0"> ({{ getCartQuantity(product) }})</span>
+          </template>
         </button>
       </div>
     </div>

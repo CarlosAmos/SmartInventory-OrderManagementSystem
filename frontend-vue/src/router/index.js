@@ -9,6 +9,10 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/',
+      redirect: '/products',
+    },
+    {
       path: '/login',
       name: 'login',  // This name is used in App.vue
       component: LoginView,
