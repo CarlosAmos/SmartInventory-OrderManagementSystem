@@ -44,7 +44,7 @@ php artisan migrate --seed
 php artisan serve
 ```
 
-The API will be available at `http://localhost:8000`
+The API will be available at `http://localhost:8001`
 
 ### FRONTEND SETUP
 
@@ -57,6 +57,11 @@ npm run dev
 The SPA will be available at `http://localhost:5173`
 
 ## Login Credentials
+
+- **Username:** `admin@email.com`
+- **Password:** `password123`
+
+OR
 
 - **Username:** `testuser@email.com`
 - **Password:** `password123`

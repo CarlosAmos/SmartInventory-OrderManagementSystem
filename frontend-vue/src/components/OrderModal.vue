@@ -30,6 +30,7 @@ watch(() => props.state, (newState) => {
 })
 
 const closeModal = () => {
+  if (props.state === 'processing' || props.state === 'success') return
   emit('close')
 }
 </script>
@@ -37,7 +38,8 @@ const closeModal = () => {
 <template>
   <div class="modal-overlay" @click.self="closeModal">
     <div class="modal-container">
-      <button 
+      <button
+        v-if="state === 'error'"
         @click="closeModal"
         class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
         aria-label="Close"

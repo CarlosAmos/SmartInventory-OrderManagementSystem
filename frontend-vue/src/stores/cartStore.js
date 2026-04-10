@@ -2,28 +2,28 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 export const useCartStore = defineStore('cart', () => {
-  // State
   const items = ref([]);
+  const storageKey = ref('cart');
 
-  // Load from localStorage on init
-  const loadFromStorage = () => {
-    const stored = localStorage.getItem('cart');
+  const loadForUser = (userId) => {
+    storageKey.value = `cart_${userId}`
+    const stored = localStorage.getItem(storageKey.value)
     if (stored) {
       try {
-        items.value = JSON.parse(stored);
+        items.value = JSON.parse(stored)
       } catch (e) {
-        console.error('Failed to parse cart from localStorage:', e);
-        items.value = [];
+        console.error('Failed to parse cart from localStorage:', e)
+        items.value = []
       }
+    } else {
+      items.value = []
     }
   }
 
-  // Save to localStorage
   const saveToLocalStorage = () => {
-    localStorage.setItem('cart', JSON.stringify(items.value));
+    localStorage.setItem(storageKey.value, JSON.stringify(items.value));
   }
 
-  // Computed properties
   const itemCount = computed(() => {
     return items.value.reduce((count, item) => count + item.quantity, 0);
   })
@@ -42,10 +42,9 @@ export const useCartStore = defineStore('cart', () => {
     return subtotal.value + gst.value;
   })
 
-  // Actions
   const addToCart = (product, quantity = 1) => {
     const existingItem = items.value.find(item => item.id === product.id);
-    
+
     if (existingItem) {
       existingItem.quantity += quantity;
     } else {
@@ -54,7 +53,7 @@ export const useCartStore = defineStore('cart', () => {
         quantity
       });
     }
-    
+
     saveToLocalStorage()
   }
 
@@ -79,23 +78,22 @@ export const useCartStore = defineStore('cart', () => {
     saveToLocalStorage();
   }
 
-  // Initialize from localStorage
-  loadFromStorage();
+  const resetCart = () => {
+    items.value = [];
+    storageKey.value = 'cart';
+  }
 
   return {
-    // State
     items,
-    
-    // Computed
     itemCount,
     subtotal,
     gst,
     total,
-    
-    // Actions
+    loadForUser,
     addToCart,
     removeFromCart,
     updateQuantity,
-    clearCart
+    clearCart,
+    resetCart,
   }
 })

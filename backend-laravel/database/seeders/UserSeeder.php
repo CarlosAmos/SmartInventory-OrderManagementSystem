@@ -20,5 +20,11 @@ class UserSeeder extends Seeder
             'email' => 'testuser@email.com',  // Using 'admin' as email for testing
             'password' => Hash::make('password123'),
         ]);
+
+                User::create([
+            'name' => 'Test User',
+            'email' => 'admin@email.com',  // Using 'admin' as email for testing
+            'password' => Hash::make('password123'),
+        ]);
     }
 }

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useCartStore } from '@/stores/cartStore'
 
 export const useAuthStore = defineStore('auth', () => {
   // Initialize state from localStorage
@@ -11,6 +12,7 @@ export const useAuthStore = defineStore('auth', () => {
   if (storedUser) {
     try {
       user.value = JSON.parse(storedUser)
+      useCartStore().loadForUser(user.value.id)
     } catch (e) {
       console.error('Failed to parse user from localStorage:', e)
       localStorage.removeItem('user')
@@ -22,29 +24,23 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Actions
   const setAuth = (authToken, userData) => {
-    console.log('setAuth called with:', { authToken, userData }) // DEBUG
-    
-    // Set reactive state
     token.value = authToken
     user.value = userData
-    
-    // Persist to localStorage
+
     localStorage.setItem('auth_token', authToken)
     localStorage.setItem('user', JSON.stringify(userData))
-    
-    console.log('Auth set. Token:', token.value) // DEBUG
+
+    useCartStore().loadForUser(userData.id)
   }
 
   const clearAuth = () => {
-    console.log('clearAuth called') // DEBUG
-    
-    // Clear reactive state
     token.value = null
     user.value = null
-    
-    // Clear localStorage
+
     localStorage.removeItem('auth_token')
     localStorage.removeItem('user')
+
+    useCartStore().resetCart()
   }
 
   const getToken = () => {
